@@ -1,22 +1,14 @@
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.JOptionPane;
 import java.sql.*;
 
-public class ChineseMedicationApp extends JFrame {
-    private JTextField idField;
-    private JTextField nameField;
-    private JTextField descriptionField;
-    private JTextField usageField;
-    private JTextArea resultArea;
-
-    private Connection connection;
+public class ChineseMedicationApp {
+    private static Connection connection;
 
     public ChineseMedicationApp() {
-        initializeUI();
-
-        String jdbcUrl = "jdbc:mysql://localhost:3306/chinese_medication";
+        String jdbcUrl = "jdbc:mysql://localhost:3306/chinese_medication?useUnicode=true&characterEncoding=utf8";
         String username = "root";
         String password = "";
 
@@ -26,56 +18,6 @@ public class ChineseMedicationApp extends JFrame {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-
-    private void initializeUI() {
-        setTitle("Chinese Medication App");
-        setSize(400, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(6, 2));
-
-        JLabel idLabel = new JLabel("ID:");
-        idField = new JTextField();
-        JLabel nameLabel = new JLabel("名称:");
-        nameField = new JTextField();
-        JLabel descriptionLabel = new JLabel("描述:");
-        descriptionField = new JTextField();
-        JLabel usageLabel = new JLabel("用法:");
-        usageField = new JTextField();
-
-        JButton insertButton = new JButton("插入");
-        JButton selectButton = new JButton("查询");
-
-        resultArea = new JTextArea();
-        JScrollPane scrollPane = new JScrollPane(resultArea);
-
-        insertButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                insertData();
-            }
-        });
-
-        selectButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                selectData();
-            }
-        });
-
-        add(idLabel);
-        add(idField);
-        add(nameLabel);
-        add(nameField);
-        add(descriptionLabel);
-        add(descriptionField);
-        add(usageLabel);
-        add(usageField);
-        add(insertButton);
-        add(selectButton);
-        add(scrollPane);
-
-        setVisible(true);
     }
 
     private void createTable() throws SQLException {
@@ -91,11 +33,7 @@ public class ChineseMedicationApp extends JFrame {
         }
     }
 
-    private void insertData() {
-        String name = nameField.getText();
-        String description = descriptionField.getText();
-        String usage = usageField.getText();
-
+    public static void insertData(String name, String description, String usage) {
         String insertSql = "INSERT INTO chinese_medication (name, description, `usage`) VALUES (?, ?, ?)";
 
         try (PreparedStatement statement = connection.prepareStatement(insertSql)) {
@@ -105,53 +43,53 @@ public class ChineseMedicationApp extends JFrame {
 
             int rowsInserted = statement.executeUpdate();
             if (rowsInserted > 0) {
-                JOptionPane.showMessageDialog(this, "数据插入成功。");
-                clearFields();
+                System.out.println("数据插入成功。");
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    private void selectData() {
-        String selectSql = "SELECT * FROM chinese_medication";
+    public static String selectData(int id, String name) {
+        if (id == 0 && name.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "未输入有效信息");
+            return "";
+        }
 
-        try (PreparedStatement statement = connection.prepareStatement(selectSql);
-             ResultSet resultSet = statement.executeQuery()) {
+        String selectSql = "SELECT * FROM chinese_medication WHERE id = ? OR name = ?";
+
+        try (PreparedStatement statement = connection.prepareStatement(selectSql)) {
+            statement.setInt(1, id);
+            statement.setString(2, name);
+
+            ResultSet resultSet = statement.executeQuery();
+
             StringBuilder sb = new StringBuilder();
 
             while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String name = resultSet.getString("name");
+                int medicationId = resultSet.getInt("id");
+                String medicationName = resultSet.getString("name");
                 String description = resultSet.getString("description");
                 String usage = resultSet.getString("usage");
 
-                sb.append("ID: ").append(id).append("\n");
-                sb.append("名称: ").append(name).append("\n");
+                sb.append("ID: ").append(medicationId).append("\n");
+                sb.append("名称: ").append(medicationName).append("\n");
                 sb.append("描述: ").append(description).append("\n");
                 sb.append("用法: ").append(usage).append("\n");
                 sb.append("-------------------\n");
             }
 
-            resultArea.setText(sb.toString());
+            return sb.toString();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
 
-    private void clearFields() {
-        idField.setText("");
-        nameField.setText("");
-        descriptionField.setText("");
-        usageField.setText("");
+        return "";
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new ChineseMedicationApp();
-            }
-        });
+        ChineseMedicationApp app = new ChineseMedicationApp();
+        ChineseMedicationGUI gui = new ChineseMedicationGUI(app);
+        gui.show();
     }
 }
