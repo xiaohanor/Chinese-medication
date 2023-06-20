@@ -1,7 +1,6 @@
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import javax.swing.JOptionPane;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.*;
 
 public class ChineseMedicationApp {
@@ -25,7 +24,7 @@ public class ChineseMedicationApp {
                 "id INT AUTO_INCREMENT PRIMARY KEY," +
                 "name VARCHAR(100) NOT NULL," +
                 "description VARCHAR(255) NOT NULL," +
-                "`usage` VARCHAR(255) NOT NULL" +
+                "usage VARCHAR(255) NOT NULL" +
                 ")";
 
         try (Statement statement = connection.createStatement()) {
@@ -33,7 +32,7 @@ public class ChineseMedicationApp {
         }
     }
 
-    public static void insertData(String name, String description, String usage) {
+    public void insertData(String id, String name, String description, String usage) {
         String insertSql = "INSERT INTO chinese_medication (name, description, `usage`) VALUES (?, ?, ?)";
 
         try (PreparedStatement statement = connection.prepareStatement(insertSql)) {
@@ -43,19 +42,14 @@ public class ChineseMedicationApp {
 
             int rowsInserted = statement.executeUpdate();
             if (rowsInserted > 0) {
-                System.out.println("数据插入成功。");
+                System.out.println("Data inserted successfully.");
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static String selectData(int id, String name) {
-        if (id == 0 && name.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "未输入有效信息");
-            return "";
-        }
-
+    public String selectData(int id, String name) {
         String selectSql = "SELECT * FROM chinese_medication WHERE id = ? OR name = ?";
 
         try (PreparedStatement statement = connection.prepareStatement(selectSql)) {
@@ -85,6 +79,38 @@ public class ChineseMedicationApp {
         }
 
         return "";
+    }
+
+    public boolean exportData(String filePath) {
+        String selectSql = "SELECT * FROM chinese_medication";
+
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(selectSql);
+             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+
+            StringBuilder sb = new StringBuilder();
+
+            while (resultSet.next()) {
+                int medicationId = resultSet.getInt("id");
+                String medicationName = resultSet.getString("name");
+                String description = resultSet.getString("description");
+                String usage = resultSet.getString("usage");
+
+                sb.append("ID: ").append(medicationId).append("\n");
+                sb.append("名称: ").append(medicationName).append("\n");
+                sb.append("描述: ").append(description).append("\n");
+                sb.append("用法: ").append(usage).append("\n");
+                sb.append("-------------------\n");
+            }
+
+            writer.write(sb.toString());
+            System.out.println("Data exported successfully.");
+            return true;
+        } catch (SQLException | IOException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     public static void main(String[] args) {

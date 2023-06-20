@@ -3,123 +3,120 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class ChineseMedicationGUI extends JFrame {
-    private JTextField idField;
-    private JTextField nameField;
-    private JTextField descriptionField;
-    private JTextField usageField;
-    private JTextArea resultArea;
+public class ChineseMedicationGUI {
     private ChineseMedicationApp app;
+    private JFrame frame;
+    private JTextField idTextField;
+    private JTextField nameTextField;
+    private JTextArea resultTextArea;
 
     public ChineseMedicationGUI(ChineseMedicationApp app) {
         this.app = app;
-        initializeUI();
     }
 
-    private void initializeUI() {
-        setTitle("Chinese Medication App");
-        setSize(400, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridBagLayout());
+    public void show() {
+        frame = new JFrame("Chinese Medication GUI");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 300);
 
-        GridBagConstraints constraints = new GridBagConstraints();
-        constraints.gridx = 0;
-        constraints.gridy = 0;
-        constraints.anchor = GridBagConstraints.WEST;
-        constraints.insets = new Insets(5, 5, 5, 5);
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+
+        JPanel inputPanel = createInputPanel();
+        JPanel resultPanel = createResultPanel();
+        JPanel buttonPanel = createButtonPanel();
+
+        mainPanel.add(inputPanel);
+        mainPanel.add(resultPanel);
+        mainPanel.add(buttonPanel);
+
+        frame.getContentPane().add(mainPanel);
+        frame.setVisible(true);
+    }
+
+    private JPanel createInputPanel() {
+        JPanel inputPanel = new JPanel(new FlowLayout());
 
         JLabel idLabel = new JLabel("ID:");
-        add(idLabel, constraints);
+        idTextField = new JTextField(10);
 
-        idField = new JTextField(20);
-        constraints.gridx = 1;
-        add(idField, constraints);
+        JLabel nameLabel = new JLabel("Name:");
+        nameTextField = new JTextField(10);
 
-        JLabel nameLabel = new JLabel("名称:");
-        constraints.gridx = 0;
-        constraints.gridy = 1;
-        add(nameLabel, constraints);
+        inputPanel.add(idLabel);
+        inputPanel.add(idTextField);
+        inputPanel.add(nameLabel);
+        inputPanel.add(nameTextField);
 
-        nameField = new JTextField(20);
-        constraints.gridx = 1;
-        add(nameField, constraints);
+        return inputPanel;
+    }
 
-        JLabel descriptionLabel = new JLabel("描述:");
-        constraints.gridx = 0;
-        constraints.gridy = 2;
-        add(descriptionLabel, constraints);
+    private JPanel createResultPanel() {
+        JPanel resultPanel = new JPanel(new BorderLayout());
 
-        descriptionField = new JTextField(20);
-        constraints.gridx = 1;
-        add(descriptionField, constraints);
+        resultTextArea = new JTextArea(10, 30);
+        resultTextArea.setEditable(false);
 
-        JLabel usageLabel = new JLabel("用法:");
-        constraints.gridx = 0;
-        constraints.gridy = 3;
-        add(usageLabel, constraints);
+        JScrollPane scrollPane = new JScrollPane(resultTextArea);
+        resultPanel.add(scrollPane, BorderLayout.CENTER);
 
-        usageField = new JTextField(20);
-        constraints.gridx = 1;
-        add(usageField, constraints);
+        return resultPanel;
+    }
 
-        JButton insertButton = new JButton("插入");
-        constraints.gridx = 0;
-        constraints.gridy = 4;
-        constraints.gridwidth = 2;
-        constraints.anchor = GridBagConstraints.CENTER;
-        add(insertButton, constraints);
+    private JPanel createButtonPanel() {
+        JPanel buttonPanel = new JPanel();
 
-        JButton selectButton = new JButton("查询");
-        constraints.gridy = 5;
-        add(selectButton, constraints);
-
-        insertButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                app.insertData(nameField.getText(), descriptionField.getText(), usageField.getText());
-                clearFields();
-            }
-        });
-
-        selectButton.addActionListener(new ActionListener() {
-            @Override
+        JButton searchButton = new JButton("Search");
+        searchButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 int id = 0;
-                String name = "";
-                String idText = idField.getText();
-                String nameText = nameField.getText();
+                String name = nameTextField.getText();
 
-                if (!idText.isEmpty()) {
-                    id = Integer.parseInt(idText);
-                }
-
-                if (!nameText.isEmpty()) {
-                    name = nameText;
+                try {
+                    id = Integer.parseInt(idTextField.getText());
+                } catch (NumberFormatException ex) {
+                    // Ignore if ID is not a valid integer
                 }
 
                 String result = app.selectData(id, name);
-                resultArea.setText(result);
+                resultTextArea.setText(result);
             }
         });
 
-        constraints.gridx = 0;
-        constraints.gridy = 6;
-        constraints.gridwidth = 2;
-        constraints.fill = GridBagConstraints.BOTH;
-        constraints.weightx = 1.0;
-        constraints.weighty = 1.0;
+        JButton insertButton = new JButton("Insert");
+        insertButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String id = idTextField.getText();
+                String name = nameTextField.getText();
+                String description = JOptionPane.showInputDialog(frame, "Enter description:");
+                String usage = JOptionPane.showInputDialog(frame, "Enter usage:");
 
-        resultArea = new JTextArea();
-        JScrollPane scrollPane = new JScrollPane(resultArea);
-        add(scrollPane, constraints);
+                app.insertData(id, name, description, usage);
+                JOptionPane.showMessageDialog(frame, "Data inserted successfully!");
+            }
+        });
 
-        setVisible(true);
-    }
+        JButton exportButton = new JButton("Export");
+        exportButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                int option = fileChooser.showSaveDialog(frame);
+                if (option == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+                    boolean success = app.exportData(filePath);
+                    if (success) {
+                        JOptionPane.showMessageDialog(frame, "Data exported successfully!");
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "Failed to export data.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        });
 
-    private void clearFields() {
-        idField.setText("");
-        nameField.setText("");
-        descriptionField.setText("");
-        usageField.setText("");
+        buttonPanel.add(searchButton);
+        buttonPanel.add(insertButton);
+        buttonPanel.add(exportButton);
+
+        return buttonPanel;
     }
 }
